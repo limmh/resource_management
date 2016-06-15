@@ -188,7 +188,7 @@ public:
 	void swap(SharedResource& src)
 	{
 		T temp = m_res;
-		long* p = m_pRefCount;
+		RefCountType* p = m_pRefCount;
 		m_res = src.m_res;
 		m_pRefCount = src.m_pRefCount;
 		src.m_res = temp;
