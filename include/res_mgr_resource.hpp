@@ -2,7 +2,7 @@
 
 The MIT License (MIT)
 
-Copyright (c) 2016 MH Lim
+Copyright (c) 2016 - 2017 MH Lim
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -44,23 +44,23 @@ namespace res_mgr {
 //     }
 // };
 
-template<typename T, T invalid_value, class ReleaseFunction>
+template<typename T, typename S, S invalid_value, class ReleaseFuncType>
 class Resource
 {
 public:
-	Resource(T res = invalid_value) : m_res(res)
+	Resource(T res = T(invalid_value)) : m_res(res)
 	{
 	}
 
 	~Resource()
 	{
 		close();
-	}	
+	}
 
 	Resource(const Resource& src) : m_res(src.m_res)
 	{
 		Resource& r = const_cast<Resource&>(src);
-		r.m_res = invalid_value;
+		r.m_res = T(invalid_value);
 	}
 
 	Resource& operator=(const Resource& src)
@@ -68,7 +68,7 @@ public:
 		close();
 		m_res = src.m_res;
 		Resource& r = const_cast<Resource&>(src);
-		r.m_res = invalid_value;
+		r.m_res = T(invalid_value);
 		return *this;
 	}
 
@@ -81,9 +81,9 @@ public:
 
 	void close()
 	{
-		if (invalid_value != m_res)
+		if (T(invalid_value) != m_res)
 		{
-			ReleaseFunction release;
+			ReleaseFuncType release;
 			release(m_res);
 			m_res = invalid_value;
 		}
@@ -96,7 +96,7 @@ public:
 
 	bool is_valid() const
 	{
-		return (invalid_value != m_res);
+		return (T(invalid_value) != m_res);
 	}
 
 	void swap(Resource& src)
@@ -108,115 +108,6 @@ public:
 
 private:
 	T m_res;
-};
-
-
-// The resource is shared among different instances by using reference counting.
-template<typename T, T invalid_value, class ReleaseFunction, typename RefCountType = long>
-class SharedResource
-{
-public:
-	SharedResource(T res = invalid_value) : m_res(res), m_pRefCount(NULL)
-	{
-		init();
-	}
-
-	SharedResource(const SharedResource& src) : m_res(src.m_res), m_pRefCount(NULL)
-	{
-		if (invalid_value != m_res)
-		{
-			m_pRefCount = src.m_pRefCount;
-			atomic_increment<RefCountType>(m_pRefCount);
-		}
-	}
-
-	~SharedResource()
-	{
-		close();
-	}
-
-	SharedResource& operator=(const SharedResource& src)
-	{
-		close();
-		m_res = src.m_res;
-		if (invalid_value != m_res)
-		{
-			m_pRefCount = src.m_pRefCount;
-			atomic_increment<RefCountType>(m_pRefCount);
-		}
-		return *this;
-	}
-
-	SharedResource& operator=(T res)
-	{
-		close();
-		m_res = res;
-		init();
-		return *this;
-	}
-
-	void close()
-	{
-		if (invalid_value == m_res)
-		{
-			m_pRefCount = NULL;
-			return;
-		}
-
-		RefCountType count = atomic_decrement<RefCountType>(m_pRefCount);
-		if (0 == count)
-		{
-			ReleaseFunction release;
-			release(m_res);
-			delete m_pRefCount;
-		}
-
-		m_res = invalid_value;
-		m_pRefCount = NULL;
-	}
-
-	T get() const
-	{
-		return m_res;
-	}
-
-	bool is_valid() const
-	{
-		return (invalid_value != m_res);
-	}
-
-	void swap(SharedResource& src)
-	{
-		T temp = m_res;
-		RefCountType* p = m_pRefCount;
-		m_res = src.m_res;
-		m_pRefCount = src.m_pRefCount;
-		src.m_res = temp;
-		src.m_pRefCount = p;
-	}
-
-private:
-	void init()
-	{
-		if (invalid_value == m_res)
-			return;
-
-		try
-		{
-			m_pRefCount = new RefCountType(1);
-		}
-		catch (std::exception& e)
-		{
-			ReleaseFunction release;
-			release(m_res);
-			m_res = invalid_value;
-			m_pRefCount = NULL;
-			throw std::exception(e);
-		}
-	}
-
-	T m_res;
-	RefCountType* m_pRefCount;
 };
 
 } // namespace
