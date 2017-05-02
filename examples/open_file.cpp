@@ -88,15 +88,6 @@ int main(int argc, char *argv[])
 			c = fgetc(file.get());
 		}
 
-		if (0 == file_size) {
-			printf("%s: ", argv[i]);
-			if (errno != 0)
-				printf("%s\n", strerror(errno));
-			else
-				printf("%zd byte\n",file_size);
-			continue;
-		}
-
 		rewind(file.get());
 		Buffer buffer = malloc(file_size * sizeof(unsigned char));
 		if (!buffer.is_valid()) {

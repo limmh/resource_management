@@ -27,7 +27,6 @@ SOFTWARE.
 #ifndef RESOURCE_MANAGER_RESOURCE_HPP_
 #define RESOURCE_MANAGER_RESOURCE_HPP_
 
-#include "res_mgr_atomic.hpp"
 #include <exception>
 
 namespace res_mgr {
