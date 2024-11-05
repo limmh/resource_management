@@ -2,7 +2,7 @@
 
 The MIT License (MIT)
 
-Copyright (c) 2016 - 2017 MH Lim
+Copyright (c) 2016 - 2024 MH Lim
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -24,74 +24,64 @@ SOFTWARE.
 
 */
 
-#ifndef RESOURCE_MANAGER_LOCK_HPP_
-#define RESOURCE_MANAGER_LOCK_HPP_
+#ifndef RESOURCE_MANAGER_LOCK_HPP
+#define RESOURCE_MANAGER_LOCK_HPP
 
 namespace res_mgr {
 
-template<typename T, class InitFunc, class UninitFunc>
+template<typename LockType, class InitFunctor, class DeinitFunctor, class LockFunctor, class UnlockFunctor>
 class ResourceLock
 {
 public:
 	ResourceLock()
 	{
-		InitFunc init;
-		init(&m_resLock);
+		InitFunctor init;
+		init(m_lock);
 	}
 
 	~ResourceLock()
 	{
-		UninitFunc uninit;
-		uninit(&m_resLock);
+		DeinitFunctor deinit;
+		deinit(m_lock);
 	}
 
-	operator T*()
+	void lock()
 	{
-		return &m_resLock;	
+		LockFunctor lock;
+		lock(m_lock);
+	}
+
+	void unlock()
+	{
+		UnlockFunctor unlock;
+		unlock(m_lock);
+	}
+
+	LockType& get()
+	{
+		return m_lock;
 	}
 
 private:
-	T m_resLock;
+	LockType m_lock;
 };
 
-template<typename T, class LockFunc, class UnlockFunc>
+template<typename ResourceLock>
 class ResourceLockMechanism
 {
 public:
-	explicit ResourceLockMechanism(T* pResLock) : m_pResLock(pResLock)
+	explicit ResourceLockMechanism(ResourceLock& lock) : m_lock(lock)
 	{
-		LockFunc lock;
-		lock(m_pResLock);
+		m_lock.lock();
 	}
 
 	~ResourceLockMechanism()
 	{
-		UnlockFunc unlock;
-		unlock(m_pResLock);
+		m_lock.unlock();
 	}
 
 private:
-	T* m_pResLock;
-};
-
-template<typename T, class LockFunc, class UnlockFunc>
-class ResourceLockMechanism2
-{
-public:
-	explicit ResourceLockMechanism2(T resLockHandle) : m_resLockHandle(resLockHandle)
-	{
-		LockFunc lock;
-		lock(resLockHandle);
-	}
-
-	~ResourceLockMechanism2()
-	{
-		UnlockFunc unlock;
-		unlock(m_resLockHandle);
-	}
-
-private:
-	T m_resLockHandle;
+	ResourceLock& m_lock;
 };
 
 } // namespace

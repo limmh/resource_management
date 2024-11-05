@@ -2,7 +2,7 @@
 
 The MIT License (MIT)
 
-Copyright (c) 2016 - 2017 MH Lim
+Copyright (c) 2016 - 2024 MH Lim
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -24,89 +24,105 @@ SOFTWARE.
 
 */
 
-#ifndef RESOURCE_MANAGER_RESOURCE_HPP_
-#define RESOURCE_MANAGER_RESOURCE_HPP_
-
-#include <exception>
+#ifndef RESOURCE_MANAGER_RESOURCE_HPP
+#define RESOURCE_MANAGER_RESOURCE_HPP
 
 namespace res_mgr {
+/*
+ Only one copy of resource is allowed.
+ Copying the resource from a non-const resource object to another will transfer the ownership.
+ Template parameters:
+ 1) ResourceType: the type of the resource being managed, e.g. a socket descriptor or a file handle.
+ 2) invalid_value: a value that represents an invalid resource or no resource.
+ 3) ResourceFunctor: a functor or function class which contains two overloads for operator().
+    - void operator() (ResourceType resource): a function to release the resource
+    - bool operator() (ResourceType resource, ResourceType invalid_value): a function to compare the resource to an invalid value
 
-// Only one copy of resource is allowed.
-// Copying resource from one resource manager object to another will transfer the ownership.
-// T is the type of the resource being managed, e.g. a socket descriptor or a file handle.
-// ReleaseFunction is a function object which overloads the operator() to provide a way to release the resource.
-// e.g.
-// class ReleaseFunction {
-// public:
-//     void operator() (int sockfd) {
-//         ::close(sockfd);
-//     }
-// };
+ e.g.
+ class SocketFunctor {
+ public:
+     void operator() (int sockfd) {
+         ::close(sockfd);
+     }
+ 	 bool operator(int resource_value, int invalid_value) { // invalid_value refers to the second function template parameter
+	      return (resource_value <= invalid_value);
+ 	 }
+	 // optional: static member functions
+	 // no other non-static members
+}
+*/
 
-template<typename T, typename S, S invalid_value, class ReleaseFuncType>
+template <typename ResourceType, ResourceType invalid_value, class ResourceFunctor>
 class Resource
 {
 public:
-	Resource(T res = T(invalid_value)) : m_res(res)
+	Resource(ResourceType resource = invalid_value) : m_resource(resource)
 	{
 	}
 
 	~Resource()
 	{
-		close();
+		release();
 	}
 
-	Resource(const Resource& src) : m_res(src.m_res)
+	Resource(Resource& src) : m_resource(src.m_resource)
 	{
-		Resource& r = const_cast<Resource&>(src);
-		r.m_res = T(invalid_value);
+		src.m_resource = invalid_value;
 	}
 
-	Resource& operator=(const Resource& src)
+	Resource& operator=(Resource& src)
 	{
-		close();
-		m_res = src.m_res;
-		Resource& r = const_cast<Resource&>(src);
-		r.m_res = T(invalid_value);
+		if (this != &src) {
+			release();
+			m_resource = src.m_resource;
+			src.m_resource = invalid_value;
+		}
 		return *this;
 	}
 
-	Resource& operator=(T res)
+	Resource& operator=(ResourceType resource)
 	{
-		close();
-		m_res = res;
+		if (m_resource != resource) {
+			release();
+			m_resource = resource;
+		}
 		return *this;
 	}
 
-	void close()
+	void release()
 	{
-		if (T(invalid_value) != m_res)
+		if (is_valid())
 		{
-			ReleaseFuncType release;
-			release(m_res);
-			m_res = invalid_value;
+			ResourceFunctor release_;
+			release_(m_resource);
+			m_resource = invalid_value;
 		}
 	}
 
-	T get() const
+	ResourceType get() const
 	{
-		return m_res;
+		return m_resource;
 	}
 
 	bool is_valid() const
 	{
-		return (T(invalid_value) != m_res);
+		ResourceFunctor compare;
+		return compare(m_resource, invalid_value);
 	}
 
 	void swap(Resource& src)
 	{
-		T temp = m_res;
-		m_res = src.m_res;
-		src.m_res = temp;
+		if (this != &src) {
+			ResourceType resource = m_resource;
+			m_resource = src.m_resource;
+			src.m_resource = resource;
+		}
 	}
 
 private:
-	T m_res;
+	Resource(const Resource&);            // disallows constructing from const resource objects
+	Resource& operator=(const Resource&); // disallows copying from const resource objects
+	ResourceType m_resource;
 };
 
 } // namespace

@@ -1,6 +1,7 @@
+/*
 The MIT License (MIT)
 
-Copyright (c) 2016 - 2024 MH Lim
+Copyright (c) 2017 - 2024 MH Lim
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -19,3 +20,26 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+*/
+
+#ifndef MY_MUTEX_H
+#define MY_MUTEX_H
+
+#ifndef MY_MUTEX_EXPORT
+#define MY_MUTEX_EXPORT
+#endif
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+MY_MUTEX_EXPORT void *mutex_create(); /* returns NULL on failure */
+MY_MUTEX_EXPORT void mutex_destroy(void *mutex);
+MY_MUTEX_EXPORT int mutex_lock(void *mutex); /* returns 0 on success, non-zero otherwise */
+MY_MUTEX_EXPORT int mutex_unlock(void *mutex); /* returns 0 on success, non-zero otherwise */
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif
