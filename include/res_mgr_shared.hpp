@@ -28,6 +28,7 @@ SOFTWARE.
 #define RESOURCE_MANAGER_SHARED_HPP
 
 #include "res_mgr_atomic.hpp"
+#include <cstddef>
 #include <exception>
 
 namespace res_mgr {

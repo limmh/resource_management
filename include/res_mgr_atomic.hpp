@@ -28,6 +28,7 @@ SOFTWARE.
 #define RESOURCE_MANAGER_ATOMIC_HPP
 
 #include <cassert>
+#include <cstddef>
 
 namespace res_mgr {
 
